@@ -21,7 +21,6 @@ namespace BankMore.Application.Accounts.Handlers
 
         public async Task<Guid> Handle(CriarContaCommand request, CancellationToken cancellationToken)
         {
-
             // 1. Validação de Negócio: Verificar se o número da conta já existe
             var contaExistente = await _repository.ObterPorNumeroAsync(request.Numero);
             if (contaExistente != null)
@@ -32,24 +31,21 @@ namespace BankMore.Application.Accounts.Handlers
             // 2. Validação de Documento (Requisito do teste: INVALID_DOCUMENT)
             if (!ValidarCPF(request.CPF))
             {
-                // Dica: No futuro, usaremos um custom exception para o Middleware pegar o 'INVALID_DOCUMENT'
                 throw new ArgumentException("CPF inválido", "INVALID_DOCUMENT");
             }
 
-            // --- MOVA A GERAÇÃO PARA CÁ ---
-            // Assim, cada execução do Handle gera um Salt novo e exclusivo
-            string novoSalt = Guid.NewGuid().ToString().Substring(0, 8);
-
             // 3. Criar a Entidade
-            // O construtor da Entidade deve ser responsável por gerar o Salt e o ID único
+            // O construtor da ContaCorrente já gera o Salt e o Hash internamente agora!
             var novaConta = new ContaCorrente(
                 request.Numero,
                 request.Nome,
-                request.Senha, // Aqui você passaria a senha (idealmente já hasheada)
-                novoSalt       // O argumento que estava faltando!
-            );
+                request.Senha);
+
             // 4. Persistir no Banco via Repositório (Dapper)
-            return await _repository.AdicionarAsync(novaConta);
+            await _repository.AdicionarAsync(novaConta);
+
+            // 5. RETORNO OBRIGATÓRIO: Você precisa retornar o ID da conta criada
+            return novaConta.IdContaCorrente;
         }
 
         private bool ValidarCPF(string cpf)

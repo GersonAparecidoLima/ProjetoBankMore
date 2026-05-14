@@ -7,7 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="14.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BankMore.Application\BankMore.Application.csproj" />
+    <ProjectReference Include="..\BankMore.Infrastructure\BankMore.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
