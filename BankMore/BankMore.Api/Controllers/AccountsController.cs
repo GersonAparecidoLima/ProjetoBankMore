@@ -63,5 +63,17 @@ namespace BankMore.Api.Controllers
             return Ok(resultado);
         }
 
+        [HttpGet("{id}/extrato")]
+        public async Task<IActionResult> ObterExtrato(Guid id)
+        {
+            var extrato = await _mediator.Send(new ObterExtratoQuery(id));
+
+            if (extrato == null)
+                return NotFound(new { mensagem = "Conta não encontrada." });
+
+            return Ok(extrato);
+        }
+
+
     }
 }
