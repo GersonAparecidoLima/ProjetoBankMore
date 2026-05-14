@@ -3,7 +3,37 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35527.113 d17.12
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BankMore.Domain", "BankMore.Domain\BankMore.Domain.csproj", "{B45311DC-BB42-431F-A40D-133F10255B77}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BankMore.Application", "BankMore.Application\BankMore.Application.csproj", "{137A6C7A-825F-44A0-8EEC-A6A049958A1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BankMore.Infrastructure", "BankMore.Infrastructure\BankMore.Infrastructure.csproj", "{F4B066FF-D6D7-426E-B0EA-9C0D815E09D7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BankMore.Api", "BankMore.Api\BankMore.Api.csproj", "{477D0E30-F7DB-4495-8A3D-858B560E3E5D}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B45311DC-BB42-431F-A40D-133F10255B77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B45311DC-BB42-431F-A40D-133F10255B77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B45311DC-BB42-431F-A40D-133F10255B77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B45311DC-BB42-431F-A40D-133F10255B77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{137A6C7A-825F-44A0-8EEC-A6A049958A1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{137A6C7A-825F-44A0-8EEC-A6A049958A1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{137A6C7A-825F-44A0-8EEC-A6A049958A1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{137A6C7A-825F-44A0-8EEC-A6A049958A1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4B066FF-D6D7-426E-B0EA-9C0D815E09D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4B066FF-D6D7-426E-B0EA-9C0D815E09D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4B066FF-D6D7-426E-B0EA-9C0D815E09D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4B066FF-D6D7-426E-B0EA-9C0D815E09D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{477D0E30-F7DB-4495-8A3D-858B560E3E5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{477D0E30-F7DB-4495-8A3D-858B560E3E5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{477D0E30-F7DB-4495-8A3D-858B560E3E5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{477D0E30-F7DB-4495-8A3D-858B560E3E5D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
