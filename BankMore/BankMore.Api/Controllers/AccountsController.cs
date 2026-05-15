@@ -74,6 +74,16 @@ namespace BankMore.Api.Controllers
             return Ok(extrato);
         }
 
+        [HttpPost("cadastrar")]
+        public async Task<IActionResult> CadastrarConta([FromBody] CriarContaCommand command)
+        {
+            // O [FromBody] avisa ao Swagger para montar a caixinha com o Nome, Documento e SaldoInicial
+            var idContaCriada = await _mediator.Send(command);
+
+            // Retorna o status 201 (Created) indicando que o Davi foi salvo no banco
+            return CreatedAtAction(nameof(CadastrarConta), new { id = idContaCriada }, new { mensagem = "Conta criada com sucesso!" });
+        }
+
 
     }
 }

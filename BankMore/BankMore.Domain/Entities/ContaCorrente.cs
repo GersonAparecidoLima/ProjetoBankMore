@@ -1,30 +1,38 @@
-﻿using System.Security.Cryptography;
+﻿using System;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace BankMore.Domain.Entities
 {
     public class ContaCorrente
     {
-        // Usamos IdContaCorrente para bater com o SQL Server
-        public Guid IdContaCorrente { get; private set; }
-        public int Numero { get; private set; }
+        // 1. Unificado para usar o IdConta do seu banco real de testes
+        public Guid IdConta { get; private set; }
         public string Nome { get; private set; }
+        public string Documento { get; private set; } // Adicionado!
+        public decimal SaldoAtual { get; private set; } // Adicionado!
+        public DateTime DataCriacao { get; private set; } // Adicionado!
+
+        // Mantidos os campos do seu modelo de segurança
+        public int Numero { get; private set; }
         public bool Ativo { get; private set; }
-        public string Senha { get; private set; } // O Dapper mapeará para a coluna Senha
+        public string Senha { get; private set; }
         public string Salt { get; private set; }
 
-        // Construtor principal usado pelo Handler
-        public ContaCorrente(int numero, string nome, string senhaPura)
+        // Construtor principal ajustado para receber os dados do banco real + senha
+        public ContaCorrente(string nome, string documento, decimal saldoInicial, string senhaPura)
         {
-            IdContaCorrente = Guid.NewGuid();
-            Numero = numero;
+            IdConta = Guid.NewGuid();
             Nome = nome;
+            Documento = documento;
+            SaldoAtual = saldoInicial;
+            DataCriacao = DateTime.Now;
+
+            Numero = new Random().Next(1000, 9999); // Gera um número de conta aleatório
             Ativo = true;
 
-            // Geramos o Salt internamente para garantir que ele seja único
+            // Geramos o Salt e Hash perfeitamente como você codificou
             Salt = Guid.NewGuid().ToString().Substring(0, 8);
-
-            // Aplicamos o Hash
             Senha = GerarHash(senhaPura, Salt);
         }
 
@@ -39,11 +47,19 @@ namespace BankMore.Domain.Entities
             return Convert.ToBase64String(bytes);
         }
 
-        // Método para validar a senha durante o Login (será útil depois!)
         public bool ValidarSenha(string senhaPura)
         {
             var hashGerado = GerarHash(senhaPura, this.Salt);
             return this.Senha == hashGerado;
+        }
+
+        // Método de negócio essencial para o seu Handler de Transferência funcionar!
+        public void Debitar(decimal valor)
+        {
+            if (valor <= 0) throw new ArgumentException("O valor do débito deve ser maior que zero.");
+            if (SaldoAtual < valor) throw new InvalidOperationException("Saldo insuficiente.");
+
+            SaldoAtual -= valor;
         }
     }
 }
