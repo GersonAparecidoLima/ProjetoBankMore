@@ -23,7 +23,7 @@ namespace BankMore.Api.Controllers
             var id = await _mediator.Send(command);
             return CreatedAtAction(nameof(CriarConta), new { id }, new { id, mensagem = "Conta criada com sucesso!" });
         }
-                
+
         [HttpPost("transferir")]
         public async Task<IActionResult> Transferir([FromBody] EfetuarTransferenciaCommand command)
         {

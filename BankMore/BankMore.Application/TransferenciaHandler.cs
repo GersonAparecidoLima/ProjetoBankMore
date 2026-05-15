@@ -45,9 +45,18 @@ namespace BankMore.Application.Handlers
                 await _session.Connection.ExecuteAsync(sqlCredito, request, transaction);
 
                 // 3. Registro na tabela de Transferencia
-                var sqlTransf = @"INSERT INTO Transferencia (IdContaCorrenteOrigem, IdContaCorrenteDestino, Valor) 
-                          VALUES (@IdOrigem, @IdDestino, @Valor)";
+                //var sqlTransf = @"INSERT INTO Transferencia (IdContaCorrenteOrigem, IdContaCorrenteDestino, Valor) 
+                //          VALUES (@IdOrigem, @IdDestino, @Valor)";
+                //await _session.Connection.ExecuteAsync(sqlTransf, request, transaction);
+
+                // 5. Registro na tabela de Transferencia (Certifique-se de passar a chave aqui!)
+                var sqlTransf = @"INSERT INTO Transferencia (IdContaCorrenteOrigem, IdContaCorrenteDestino, Valor, ChaveIdempotencia) 
+                  VALUES (@IdOrigem, @IdDestino, @Valor, @ChaveIdempotencia)";
+
+                // O 'request' precisa ter a propriedade ChaveIdempotencia preenchida
                 await _session.Connection.ExecuteAsync(sqlTransf, request, transaction);
+
+
 
                 transaction.Commit();
                 return Unit.Value;
