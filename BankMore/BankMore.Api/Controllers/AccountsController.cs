@@ -1,5 +1,6 @@
 ﻿using BankMore.Application; // Namespace onde está o seu EfetuarTransferenciaCommand
 using BankMore.Application.Accounts.Commands;
+using BankMore.Api.Filters;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,8 +24,9 @@ namespace BankMore.Api.Controllers
             var id = await _mediator.Send(command);
             return CreatedAtAction(nameof(CriarConta), new { id }, new { id, mensagem = "Conta criada com sucesso!" });
         }
-
+        // 1. Imagine que adicionamos o atributo de validação aqui:
         [HttpPost("transferir")]
+        [TypeFilter(typeof(IdempotencyFilter))] // O filtro que vai ler a tabela 'Idempotencia'
         public async Task<IActionResult> Transferir([FromBody] EfetuarTransferenciaCommand command)
         {
             try
@@ -83,6 +85,22 @@ namespace BankMore.Api.Controllers
             // Retorna o status 201 (Created) indicando que o Davi foi salvo no banco
             return CreatedAtAction(nameof(CadastrarConta), new { id = idContaCriada }, new { mensagem = "Conta criada com sucesso!" });
         }
+
+        [HttpPost("saque")]
+        [TypeFilter(typeof(IdempotencyFilter))] //  O nosso escudo protegendo o saque também!
+        public async Task<IActionResult> Saque([FromBody] EfetuarSaqueCommand command)
+        {
+            try
+            {
+                await _mediator.Send(command);
+                return Ok(new { mensagem = "Saque realizado com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { erro = ex.Message });
+            }
+        }
+
 
 
     }
