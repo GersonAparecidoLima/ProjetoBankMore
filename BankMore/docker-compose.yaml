@@ -1,0 +1,39 @@
+services:
+  # 1. Banco de Dados Oficial SQL Server dentro do Docker
+  bankmore-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: bankmore-db-container
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=BankMore@S3cur3P@ss!
+    ports:
+      - "1433:1433" # Mapeia a porta padrão do SQL Server para o Windows
+    volumes:
+      - bankmore-sql-data:/var/opt/mssql # Garante que as tabelas não sumam ao reiniciar
+    networks:
+      - bankmore-network
+
+  # 2. A sua API .NET 8
+  bankmore-api:
+    image: bankmore-api:latest
+    container_name: bankmore-api-container
+    build:
+      context: .
+      dockerfile: BankMore.Api/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      # A mágica aqui: o Server aponta para o "bankmore-db" (o nome do serviço acima)
+      - ConnectionStrings__DefaultConnection=Server=bankmore-db;Database=BankMore;User Id=sa;Password=BankMore@S3cur3P@ss!;TrustServerCertificate=True;
+    depends_on:
+      - bankmore-db # Garante que a API só vai subir DEPOIS que o banco estiver pronto
+    networks:
+      - bankmore-network
+
+volumes:
+  bankmore-sql-data:
+
+networks:
+  bankmore-network:
+    driver: bridge
