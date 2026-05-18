@@ -1,6 +1,7 @@
 using BankMore.Infrastructure.Data;
 using BankMore.Infrastructure.Repositories;
-using BankMore.Application.Accounts.Handlers; // Referência para onde está um dos seus handlers
+using BankMore.Application.Accounts.Handlers;
+using BankMore.Domain.Interfaces; // Referência para onde está um dos seus handlers
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,9 @@ builder.Services.AddScoped(provider => new DbSession(connectionString));
 
 // 3. Registrar os Repositórios
 builder.Services.AddScoped<ContaCorrenteRepository>();
+
+// Adicione junto com os outros registros de serviço:
+builder.Services.AddScoped<IMovimentoRepository, MovimentoRepository>();
 
 // 4. Registrar o MediatR 
 // Ele vai escanear o projeto 'Application' para achar todos os Handlers automaticamente

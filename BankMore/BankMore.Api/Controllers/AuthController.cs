@@ -24,8 +24,11 @@ namespace BankMore.Api.Controllers
         {
             try
             {
-                var numeroConta = await _mediator.Send(command);
-                return Ok(new { NumeroConta = numeroConta });
+                // CORRIGIDO: O retorno agora é o objeto 'resultado' completo (GUID + Número)
+                var resultado = await _mediator.Send(command);
+
+                // CORRIGIDO: Retorna o resultado direto, sem precisar envelopar em objeto anônimo
+                return Ok(resultado);
             }
             catch (ArgumentException ex) when (ex.ParamName == "INVALID_DOCUMENT")
             {

@@ -10,7 +10,8 @@ using System.Threading.Tasks;
 
 namespace BankMore.Application.Accounts.Handlers
 {
-    public class CadastrarContaCommandHandler : IRequestHandler<CadastrarContaCommand, string>
+    // CORRIGIDO: Mudamos o segundo parâmetro de 'string' para 'CadastrarContaResult'
+    public class CadastrarContaCommandHandler : IRequestHandler<CadastrarContaCommand, CadastrarContaResult>
     {
         private readonly DbSession _dbSession;
 
@@ -19,7 +20,8 @@ namespace BankMore.Application.Accounts.Handlers
             _dbSession = dbSession;
         }
 
-        public async Task<string> Handle(CadastrarContaCommand request, CancellationToken cancellationToken)
+        // CORRIGIDO: Mudamos o retorno da Task para 'CadastrarContaResult'
+        public async Task<CadastrarContaResult> Handle(CadastrarContaCommand request, CancellationToken cancellationToken)
         {
             // Validação simples de CPF (Apenas tamanho para o exemplo, pode usar sua lógica de dígitos)
             if (string.IsNullOrWhiteSpace(request.Cpf) || request.Cpf.Length != 11)
@@ -32,13 +34,16 @@ namespace BankMore.Application.Accounts.Handlers
             string senhaHasheada = GerarHashSHA256(request.Senha, salt);
             string numeroConta = new Random().Next(10000, 99999).ToString();
 
+            // CORRIGIDO: Isolamos o GUID gerado aqui para usá-lo tanto no INSERT quanto no RETURN
+            string idNovo = Guid.NewGuid().ToString().ToUpper();
+
             var query = @"
                 INSERT INTO ContaCorrente (IdContaCorrente, Numero, Nome, Ativo, Senha, Salt)
                 VALUES (@Id, @Numero, @Nome, @Ativo, @Senha, @Salt)";
 
             var parametros = new
             {
-                Id = Guid.NewGuid().ToString().ToUpper(), // UUID padrão do seu banco
+                Id = idNovo, // Usa a nossa variável com o GUID gerado
                 Numero = numeroConta,
                 Nome = "Cliente Novo " + numeroConta,
                 Ativo = 1,
@@ -47,7 +52,13 @@ namespace BankMore.Application.Accounts.Handlers
             };
 
             await _dbSession.Connection.ExecuteAsync(query, parametros);
-            return numeroConta;
+
+            // CORRIGIDO: Agora retornamos a classe completa com os dois dados!
+            return new CadastrarContaResult
+            {
+                IdConta = idNovo,
+                NumeroConta = numeroConta
+            };
         }
 
         private string GerarHashSHA256(string senha, string salt)

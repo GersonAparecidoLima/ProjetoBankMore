@@ -1,50 +1,29 @@
 ﻿using BankMore.Application.Accounts.Commands;
-using BankMore.Infrastructure.Data;
-using Dapper;
+using BankMore.Domain.Interfaces;
 using MediatR;
-using System.Data;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace BankMore.Application.Handlers
 {
     public class DepositoHandler : IRequestHandler<EfetuarDepositoCommand, Unit>
     {
-        private readonly DbSession _session;
+        private readonly IMovimentoRepository _repository;
 
-        public DepositoHandler(DbSession session)
+        // 1. Construtor único injetando apenas a nossa Interface de Movimentos
+        public DepositoHandler(IMovimentoRepository repository)
         {
-            _session = session;
+            _repository = repository;
         }
 
+        // 2. Método Handle único e limpo
         public async Task<Unit> Handle(EfetuarDepositoCommand request, CancellationToken cancellationToken)
         {
-            // Garante que a conexão está aberta
-            if (_session.Connection.State == ConnectionState.Closed)
-                _session.Connection.Open();
+            // Toda a parte de Dapper, conexão e transação agora acontece de forma segura
+            // dentro da implementação do repositório. O Handler só dispara o comando!
+            await _repository.InserirMovimentoAsync(request.IdConta, request.Valor, 'C');
 
-            // Como é apenas um insert simples, não é obrigatório usar transaction, 
-            // mas é boa prática manter o padrão caso queira adicionar logs depois.
-            using var transaction = _session.Connection.BeginTransaction();
-
-            try
-            {
-                // Registro de CRÉDITO ('C') na conta informada
-                var sql = @"INSERT INTO Movimento (IdContaCorrente, TipoMovimento, Valor, DataMovimento) 
-                           VALUES (@IdConta, 'C', @Valor, GETDATE())";
-
-                await _session.Connection.ExecuteAsync(sql, new
-                {
-                    request.IdConta,
-                    request.Valor
-                }, transaction);
-
-                transaction.Commit();
-                return Unit.Value;
-            }
-            catch (Exception)
-            {
-                transaction.Rollback();
-                throw;
-            }
+            return Unit.Value;
         }
     }
 }
