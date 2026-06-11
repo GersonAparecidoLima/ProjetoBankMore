@@ -1,45 +1,32 @@
-﻿using BankMore.Infrastructure.Data;
-using Dapper;
+using BankMore.Domain.Interfaces;
 using MediatR;
 
-namespace BankMore.Application.Handlers
+namespace BankMore.Application.Accounts.Handlers
 {
     public class ObterExtratoHandler : IRequestHandler<ObterExtratoQuery, ExtratoResponse>
     {
-        private readonly DbSession _session;
+        private readonly IContaCorrenteRepository _contaRepository;
+        private readonly IMovimentoRepository _movimentoRepository;
 
-        public ObterExtratoHandler(DbSession session) => _session = session;
+        public ObterExtratoHandler(IContaCorrenteRepository contaRepository, IMovimentoRepository movimentoRepository)
+        {
+            _contaRepository = contaRepository;
+            _movimentoRepository = movimentoRepository;
+        }
 
         public async Task<ExtratoResponse> Handle(ObterExtratoQuery request, CancellationToken cancellationToken)
         {
-            // 1. Query para o Saldo e Nome
-            var sqlDados = @"
-                SELECT c.IdContaCorrente as IdConta, c.Nome,
-                ISNULL(SUM(CASE WHEN m.TipoMovimento = 'C' THEN m.Valor ELSE -m.Valor END), 0) as SaldoAtual
-                FROM ContaCorrente c
-                LEFT JOIN Movimento m ON c.IdContaCorrente = m.IdContaCorrente
-                WHERE c.IdContaCorrente = @IdConta
-                GROUP BY c.IdContaCorrente, c.Nome";
+            var conta = await _contaRepository.ObterPorIdAsync(request.IdConta);
+            if (conta == null) return null;
 
-            // 2. Query para a Lista de Movimentações (ordenada pela mais recente)
-            var sqlMovimentos = @"
-                SELECT IdMovimento, DataMovimento, TipoMovimento as Tipo, Valor 
-                FROM Movimento 
-                WHERE IdContaCorrente = @IdConta 
-                ORDER BY DataMovimento DESC";
+            var saldo = await _movimentoRepository.ObterSaldoAsync(request.IdConta);
+            var movimentos = await _movimentoRepository.ObterMovimentosAsync(request.IdConta);
 
-            var dadosConta = await _session.Connection.QueryFirstOrDefaultAsync<dynamic>(sqlDados, new { request.IdConta });
+            var transacoes = movimentos
+                .Select(m => new MovimentacaoDto(m.IdMovimento, m.DataMovimento, m.TipoMovimento.ToString(), m.Valor))
+                .ToList();
 
-            if (dadosConta == null) return null;
-
-            var movimentos = await _session.Connection.QueryAsync<MovimentacaoDto>(sqlMovimentos, new { request.IdConta });
-
-            return new ExtratoResponse(
-                (Guid)dadosConta.IdConta,
-                (string)dadosConta.Nome,
-                (decimal)dadosConta.SaldoAtual,
-                movimentos.ToList()
-            );
+            return new ExtratoResponse(conta.IdConta, conta.Nome, saldo, transacoes);
         }
     }
 }

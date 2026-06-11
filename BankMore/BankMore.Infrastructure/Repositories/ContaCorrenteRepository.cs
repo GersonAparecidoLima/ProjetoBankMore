@@ -1,69 +1,88 @@
-﻿using BankMore.Domain.Entities;
+using BankMore.Domain.Entities;
+using BankMore.Domain.Interfaces;
 using BankMore.Infrastructure.Data;
 using Dapper;
-using System;
-using System.Threading.Tasks;
 
 namespace BankMore.Infrastructure.Repositories
 {
-    public class ContaCorrenteRepository
+    public class ContaCorrenteRepository : IContaCorrenteRepository
     {
         private readonly DbSession _session;
 
-        public ContaCorrenteRepository(DbSession session)
+        public ContaCorrenteRepository(DbSession session) => _session = session;
+
+        public async Task<ContaCorrente?> ObterPorIdAsync(Guid id)
         {
-            _session = session;
+            const string sql = @"
+                SELECT IdContaCorrente as IdConta, Numero, Nome, Ativo, Senha, Salt
+                FROM ContaCorrente
+                WHERE IdContaCorrente = @Id";
+
+            return await _session.Connection.QueryFirstOrDefaultAsync<ContaCorrente>(sql, new { Id = id });
         }
 
-        // 1. Método de busca corrigido para usar a coluna real: IdContaCorrente
-        public async Task<ContaCorrente> ObterPorIdAsync(Guid idContaCorrente)
+        public async Task<ContaCorrente?> ObterPorNumeroAsync(string numero)
         {
-            var sql = "SELECT * FROM ContaCorrente WHERE IdContaCorrente = @IdContaCorrente";
-            return await _session.Connection.QueryFirstOrDefaultAsync<ContaCorrente>(sql, new { IdContaCorrente = idContaCorrente });
+            const string sql = @"
+                SELECT IdContaCorrente as IdConta, Numero, Nome, Ativo, Senha, Salt
+                FROM ContaCorrente
+                WHERE Numero = @Numero";
+
+            return await _session.Connection.QueryFirstOrDefaultAsync<ContaCorrente>(sql, new { Numero = numero });
         }
 
-        // 2. O seu método impecável de criação de contas
-        public async Task<Guid> CriarContaBlanchAsync(string nome, string senhaPura)
+        public async Task<Guid> CriarContaAsync(string nome, string senha)
         {
-            // 1. Geramos o ID que vai mapear para [IdContaCorrente]
-            var novoId = Guid.NewGuid();
-
-            // 2. Geramos um número de conta aleatório de 5 dígitos para [Numero]
+            var id = Guid.NewGuid();
             var numeroConta = new Random().Next(10000, 99999);
+            var salt = Guid.NewGuid().ToString()[..8];
+            var senhaHash = CalcularHashSHA256(senha, salt);
 
-            // 3. Geramos o Salt e o Hash da senha para [Salt] e [Senha]
-            var salt = Guid.NewGuid().ToString().Substring(0, 8);
-            var senhaHash = CalcularHashSHA256(senhaPura, salt);
+            const string sql = @"
+                INSERT INTO ContaCorrente (IdContaCorrente, Numero, Nome, Ativo, Senha, Salt)
+                VALUES (@Id, @Numero, @Nome, @Ativo, @Senha, @Salt)";
 
-            // 4. O SQL perfeitamente alinhado com o seu SELECT do SQL Server
-            var sql = @"INSERT INTO ContaCorrente (IdContaCorrente, Numero, Nome, Ativo, Senha, Salt) 
-                        VALUES (@IdContaCorrente, @Numero, @Nome, @Ativo, @Senha, @Salt);";
-
-            // 5. Parâmetros que o Dapper vai injetar nas variáveis com @
-            var parametros = new
+            await _session.Connection.ExecuteAsync(sql, new
             {
-                IdContaCorrente = novoId,
+                Id = id,
                 Numero = numeroConta,
                 Nome = nome,
                 Ativo = true,
                 Senha = senhaHash,
                 Salt = salt
-            };
+            });
 
-            // 6. Executa o comando no banco de dados
-            await _session.Connection.ExecuteAsync(sql, parametros);
-
-            // 7. Retorna o ID gerado
-            return novoId;
+            return id;
         }
 
-        // Método auxiliar para gerar o hash da senha dentro do repositório
-        // Método auxiliar corrigido (trocado 'senate' por 'senha')
-        private string CalcularHashSHA256(string senha, string salt)
+        public async Task<(Guid id, string numero)> CadastrarContaAsync(string cpf, string senha)
+        {
+            var id = Guid.NewGuid();
+            var numeroConta = new Random().Next(10000, 99999).ToString();
+            var salt = Guid.NewGuid().ToString()[..8];
+            var senhaHash = CalcularHashSHA256(senha, salt);
+
+            const string sql = @"
+                INSERT INTO ContaCorrente (IdContaCorrente, Numero, Nome, Ativo, Senha, Salt)
+                VALUES (@Id, @Numero, @Nome, @Ativo, @Senha, @Salt)";
+
+            await _session.Connection.ExecuteAsync(sql, new
+            {
+                Id = id.ToString().ToUpper(),
+                Numero = numeroConta,
+                Nome = "Cliente Novo " + numeroConta,
+                Ativo = 1,
+                Senha = senhaHash,
+                Salt = salt
+            });
+
+            return (id, numeroConta);
+        }
+
+        private static string CalcularHashSHA256(string senha, string salt)
         {
             using var sha256 = System.Security.Cryptography.SHA256.Create();
-            var combinado = senha + salt; // Corrigido aqui!
-            var bytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(combinado));
+            var bytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(senha + salt));
             return Convert.ToBase64String(bytes);
         }
     }

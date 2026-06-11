@@ -4,7 +4,7 @@ using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BankMore.Application.Handlers
+namespace BankMore.Application.Accounts.Handlers
 {
     public class DepositoHandler : IRequestHandler<EfetuarDepositoCommand, Unit>
     {

@@ -1,36 +1,26 @@
-﻿using BankMore.Infrastructure.Data;
-using Dapper;
+using BankMore.Domain.Interfaces;
 using MediatR;
-using System.Data;
 
-namespace BankMore.Application.Handlers
+namespace BankMore.Application.Accounts.Handlers
 {
     public class ObterSaldoHandler : IRequestHandler<ObterSaldoQuery, SaldoResponse>
     {
-        private readonly DbSession _session;
+        private readonly IContaCorrenteRepository _contaRepository;
+        private readonly IMovimentoRepository _movimentoRepository;
 
-        public ObterSaldoHandler(DbSession session)
+        public ObterSaldoHandler(IContaCorrenteRepository contaRepository, IMovimentoRepository movimentoRepository)
         {
-            _session = session;
+            _contaRepository = contaRepository;
+            _movimentoRepository = movimentoRepository;
         }
 
         public async Task<SaldoResponse> Handle(ObterSaldoQuery request, CancellationToken cancellationToken)
         {
-            // Garante que a conexão esteja aberta para leitura
-            if (_session.Connection.State == ConnectionState.Closed)
-                _session.Connection.Open();
+            var conta = await _contaRepository.ObterPorIdAsync(request.IdConta);
+            if (conta == null) return null;
 
-            var sql = @"
-                SELECT 
-                    c.IdContaCorrente as IdConta, 
-                    c.Nome,
-                    ISNULL(SUM(CASE WHEN m.TipoMovimento = 'C' THEN m.Valor ELSE -m.Valor END), 0) as Saldo
-                FROM ContaCorrente c
-                LEFT JOIN Movimento m ON c.IdContaCorrente = m.IdContaCorrente
-                WHERE c.IdContaCorrente = @IdConta
-                GROUP BY c.IdContaCorrente, c.Nome";
-
-            return await _session.Connection.QueryFirstOrDefaultAsync<SaldoResponse>(sql, new { request.IdConta });
+            var saldo = await _movimentoRepository.ObterSaldoAsync(request.IdConta);
+            return new SaldoResponse(conta.IdConta, conta.Nome, saldo);
         }
     }
 }

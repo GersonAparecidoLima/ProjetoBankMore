@@ -21,7 +21,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddScoped(provider => new DbSession(connectionString));
 
 // 3. Repositórios
-builder.Services.AddScoped<ContaCorrenteRepository>();
+builder.Services.AddScoped<IContaCorrenteRepository, ContaCorrenteRepository>();
 builder.Services.AddScoped<IMovimentoRepository, MovimentoRepository>();
 
 // 4. Serviços de aplicação

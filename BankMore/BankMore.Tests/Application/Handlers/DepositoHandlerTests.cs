@@ -4,7 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using BankMore.Application.Accounts.Commands;
-using BankMore.Application.Handlers;
+using BankMore.Application.Accounts.Handlers;
 using BankMore.Domain.Interfaces;
 using MediatR;
 
