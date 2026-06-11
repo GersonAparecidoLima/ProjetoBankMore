@@ -1,107 +1,105 @@
-﻿using BankMore.Application; // Namespace onde está o seu EfetuarTransferenciaCommand
+using BankMore.Application;
 using BankMore.Application.Accounts.Commands;
 using BankMore.Api.Filters;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace BankMore.Api.Controllers
+namespace BankMore.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class AccountsController(IMediator mediator) : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class AccountsController : ControllerBase
+    // Público: qualquer pessoa pode abrir uma conta
+    [HttpPost]
+    public async Task<IActionResult> CriarConta([FromBody] CriarContaCommand command)
     {
-        private readonly IMediator _mediator;
+        var id = await mediator.Send(command);
+        return CreatedAtAction(nameof(CriarConta), new { id }, new { id, mensagem = "Conta criada com sucesso!" });
+    }
 
-        public AccountsController(IMediator mediator)
+    // Público: fluxo de cadastro via CPF/senha
+    [HttpPost("cadastrar")]
+    public async Task<IActionResult> CadastrarConta([FromBody] CriarContaCommand command)
+    {
+        var idContaCriada = await mediator.Send(command);
+        return CreatedAtAction(nameof(CadastrarConta), new { id = idContaCriada }, new { mensagem = "Conta criada com sucesso!" });
+    }
+
+    // Protegido: somente o titular autenticado pode consultar o saldo
+    [Authorize]
+    [HttpGet("{id}/saldo")]
+    public async Task<IActionResult> ObterSaldo(Guid id)
+    {
+        var resultado = await mediator.Send(new ObterSaldoQuery(id));
+
+        if (resultado == null)
+            return NotFound(new { mensagem = "Conta não encontrada." });
+
+        return Ok(resultado);
+    }
+
+    // Protegido: somente o titular autenticado pode consultar o extrato
+    [Authorize]
+    [HttpGet("{id}/extrato")]
+    public async Task<IActionResult> ObterExtrato(Guid id)
+    {
+        var extrato = await mediator.Send(new ObterExtratoQuery(id));
+
+        if (extrato == null)
+            return NotFound(new { mensagem = "Conta não encontrada." });
+
+        return Ok(extrato);
+    }
+
+    // Protegido: depósito exige autenticação para rastreabilidade
+    [Authorize]
+    [HttpPost("deposito")]
+    public async Task<IActionResult> Deposito([FromBody] EfetuarDepositoCommand command)
+    {
+        try
         {
-            _mediator = mediator;
+            await mediator.Send(command);
+            return Ok(new { mensagem = "Depósito realizado com sucesso!" });
         }
-
-        // Endpoint de Criação de Conta 
-        [HttpPost]
-        public async Task<IActionResult> CriarConta([FromBody] CriarContaCommand command)
+        catch (Exception ex)
         {
-            var id = await _mediator.Send(command);
-            return CreatedAtAction(nameof(CriarConta), new { id }, new { id, mensagem = "Conta criada com sucesso!" });
+            return BadRequest(new { erro = ex.Message });
         }
-        // 1. Imagine que adicionamos o atributo de validação aqui:
-        [HttpPost("transferir")]
-        [TypeFilter(typeof(IdempotencyFilter))] // O filtro que vai ler a tabela 'Idempotencia'
-        public async Task<IActionResult> Transferir([FromBody] EfetuarTransferenciaCommand command)
+    }
+
+    // Protegido: saque movimenta saldo — requer token válido
+    [Authorize]
+    [HttpPost("saque")]
+    [TypeFilter(typeof(IdempotencyFilter))]
+    public async Task<IActionResult> Saque([FromBody] EfetuarSaqueCommand command)
+    {
+        try
         {
-            try
-            {
-                await _mediator.Send(command);
-                return Ok(new { mensagem = "Transferência realizada com sucesso!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { erro = ex.Message });
-            }
+            await mediator.Send(command);
+            return Ok(new { mensagem = "Saque realizado com sucesso!" });
         }
-
-        [HttpPost("deposito")]
-        public async Task<IActionResult> Deposito([FromBody] EfetuarDepositoCommand command)
+        catch (Exception ex)
         {
-            try
-            {
-                await _mediator.Send(command);
-                return Ok(new { mensagem = "Depósito realizado com sucesso!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { erro = ex.Message });
-            }
+            return BadRequest(new { erro = ex.Message });
         }
+    }
 
-        [HttpGet("{id}/saldo")]
-        public async Task<IActionResult> ObterSaldo(Guid id)
+    // Protegido: transferência movimenta saldo entre contas — requer token válido
+    [Authorize]
+    [HttpPost("transferir")]
+    [TypeFilter(typeof(IdempotencyFilter))]
+    public async Task<IActionResult> Transferir([FromBody] EfetuarTransferenciaCommand command)
+    {
+        try
         {
-            var resultado = await _mediator.Send(new ObterSaldoQuery(id));
-
-            if (resultado == null)
-                return NotFound(new { mensagem = "Conta não encontrada." });
-
-            return Ok(resultado);
+            await mediator.Send(command);
+            return Ok(new { mensagem = "Transferência realizada com sucesso!" });
         }
-
-        [HttpGet("{id}/extrato")]
-        public async Task<IActionResult> ObterExtrato(Guid id)
+        catch (Exception ex)
         {
-            var extrato = await _mediator.Send(new ObterExtratoQuery(id));
-
-            if (extrato == null)
-                return NotFound(new { mensagem = "Conta não encontrada." });
-
-            return Ok(extrato);
+            return BadRequest(new { erro = ex.Message });
         }
-
-        [HttpPost("cadastrar")]
-        public async Task<IActionResult> CadastrarConta([FromBody] CriarContaCommand command)
-        {
-            // O [FromBody] avisa ao Swagger para montar a caixinha com o Nome, Documento e SaldoInicial
-            var idContaCriada = await _mediator.Send(command);
-
-            // Retorna o status 201 (Created) indicando que o Davi foi salvo no banco
-            return CreatedAtAction(nameof(CadastrarConta), new { id = idContaCriada }, new { mensagem = "Conta criada com sucesso!" });
-        }
-
-        [HttpPost("saque")]
-        [TypeFilter(typeof(IdempotencyFilter))] //  O nosso escudo protegendo o saque também!
-        public async Task<IActionResult> Saque([FromBody] EfetuarSaqueCommand command)
-        {
-            try
-            {
-                await _mediator.Send(command);
-                return Ok(new { mensagem = "Saque realizado com sucesso!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { erro = ex.Message });
-            }
-        }
-
-
-
     }
 }
