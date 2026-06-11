@@ -1,53 +1,237 @@
 # BankMore API 🚀
 
-O **BankMore** é uma API de serviços bancários essenciais (Core Banking) desenvolvida em .NET, focada em alta performance, consistência transacional e resiliência. O projeto foi construído seguindo padrões rigorosos de arquitetura de software para simular o ecossistema real de uma instituição financeira.
+API bancária desenvolvida em **.NET 8** utilizando **Clean Architecture**, **DDD**, **CQRS**, **MediatR**, **Dapper**, **JWT Authentication**, **SQL Server**, **Docker** e **xUnit**.
+
+O projeto simula o núcleo de uma instituição financeira (*Core Banking*), com foco em segurança, consistência transacional, desacoplamento entre camadas e boas práticas de engenharia de software.
 
 ---
 
-## 📐 Arquitetura e Padrões de Projeto
+# 🛠️ Tecnologias Utilizadas
 
-O software foi desenhado utilizando conceitos de **DDD (Domain-Driven Design)** para garantir o desacoplamento e a separação de responsabilidades entre as camadas (`Api`, `Application`, `Infrastructure`), além de implementar o padrão **CQRS (Command Query Responsibility Segregation)** através do **MediatR**.
-
-* **Commands e Queries:** Separação absoluta das intenções de escrita e leitura.
-* **Alta Performance:** Uso do **Dapper** para persistência e leitura de dados diretamente no banco, garantindo queries limpas, controle transacional e tempo de resposta em milissegundos.
-* **Segurança:** Autenticação e autorização via **Token JWT**. Dados sensíveis (como senhas) são protegidos na base com criptografia baseada em **Hash SHA256 e Salt dinâmico**. Além disso, os endpoints trafegam **GUIDs (`idConta`)** como chaves opacas, mitigando a exposição de dados sensíveis na rede (LGPD).
-
----
-
-## 🛠️ Funcionalidades Implementadas (100% Concluídas)
-
-* **Cadastro de Usuários:** Criação de conta corrente, validação de documento e armazenamento seguro de credenciais.
-* **Autenticação (Login):** Validação de credenciais com Salt/Hash e geração de token JWT.
-* **Movimentações Financeiras:** Endpoints de Depósito e Saque com validação rígida de saldo em tempo real (retornando HTTP 400 em caso de inconsistência).
-* **Transferências entre Contas:** Fluxo atômico que realiza o débito e o crédito de forma casada.
-* **Consulta de Saldo e Extrato:** Endpoints RESTful (`/saldo` e `/extrato`) que consolidam a soma de créditos e débitos históricos com conciliação matemática exata e ordenação cronológica.
-* **Garantia de Qualidade:** Suíte de **testes unitários** (utilizando **xUnit** e **Moq**) cobrindo as regras de negócio mais críticas, como a lógica dos Handlers e validação de saldo para saques.
+* .NET 8
+* ASP.NET Core Web API
+* Dapper
+* SQL Server
+* JWT Authentication
+* MediatR
+* CQRS
+* DDD (Domain-Driven Design)
+* Docker / Docker Compose
+* Swagger / OpenAPI
+* xUnit
+* Moq
 
 ---
 
-## 📝 Notas de Transparência e Justificativas Técnicas
+# 📐 Arquitetura
 
-Visando a honestidade intelectual e priorização de valor de negócio dentro do tempo de desenvolvimento, foram adotadas as seguintes decisões de arquitetura:
+O projeto segue os princípios de **DDD (Domain-Driven Design)** e **Clean Architecture**, promovendo baixo acoplamento e alta coesão entre as camadas.
 
-1.  **Resiliência e Idempotência (Time de Crédito):** O sistema está 100% preparado contra falhas de rede no aplicativo através do recebimento de uma `ChaveIdempotencia` (string) no comando de transferência. Caso o aplicativo repita a requisição por perda de conexão, o sistema está blindado para não duplicar o débito. O endpoint opcional de *Tarifas* não foi priorizado.
-2.  **Consistência Transacional vs. Microsserviços:** O enunciado sugeria que a API de Transferência realizasse chamadas HTTP externas para processar débitos e créditos, aplicando estornos manuais em caso de falha. Para garantir a integridade dos dados e evitar cenários de saldos órfãos em ambiente de desenvolvimento local, a operação foi centralizada em uma **Transação Atômica única via Dapper** (com `ROLLBACK` automático do banco se uma das pontas falhar).
-3.  **Ambiente de Produção (Time de Infraestrutura):** O projeto foi 100% configurado via **Docker Compose** para o ambiente de desenvolvimento local, facilitando a execução imediata pelo avaliador. Por conta do escopo temporal, *não foram gerados os manifestos de implantação do Kubernetes (K8s) nem a configuração física de réplicas*. Contudo, a aplicação foi desenvolvida de forma totalmente **Stateless**, o que significa que ela está nativamente pronta para rodar em múltiplas instâncias orquestradas no Kubernetes sem necessidade de alteração no código.
-4.  **Endpoints de Administração:** O endpoint para *Inativar Conta Corrente* não foi priorizado no escopo inicial, concentrando todos os esforços no core financeiro e transacional (depósitos, saques, transferências e extratos).
+```text
+BankMore.Api
+├── Controllers
+├── Services
+├── Program.cs
+
+BankMore.Application
+├── Commands
+├── Queries
+├── Handlers
+
+BankMore.Domain
+├── Entities
+├── Interfaces
+├── Rules
+
+BankMore.Infrastructure
+├── Repositories
+├── Data
+├── Persistence
+
+BankMore.Tests
+├── Unit Tests
+```
+
+### Padrões Utilizados
+
+* CQRS (Command Query Responsibility Segregation)
+* Repository Pattern
+* Dependency Injection
+* Dependency Inversion Principle (SOLID)
+* Transaction Script para operações financeiras
+* JWT Authentication
 
 ---
 
-## 🚀 Como Executar o Projeto Localmente
+# 🔒 Segurança
 
-Certifique-se de ter o **Docker** e o **Docker Compose** instalados na sua máquina.
+A API implementa autenticação e autorização utilizando **JWT (JSON Web Token)**.
 
-1. Clone o repositório para o seu ambiente local.
-2. Na raiz do projeto (onde está o arquivo `docker-compose.yml`), execute o comando abaixo no terminal:
+### Fluxo de autenticação
+
+1. O usuário realiza login.
+2. A senha é validada utilizando SHA256 + Salt.
+3. Um token JWT é gerado.
+4. Os endpoints financeiros exigem Bearer Token.
+5. Requisições sem token retornam HTTP 401 Unauthorized.
+
+### Proteções implementadas
+
+* Senhas armazenadas com Hash SHA256 + Salt
+* Autorização via JWT
+* Endpoints protegidos com `[Authorize]`
+* Uso de GUIDs como identificadores públicos
+* Validação de saldo antes de saques e transferências
+
+---
+
+# 🏦 Funcionalidades Implementadas
+
+### Cadastro de Usuários
+
+* Criação de conta corrente
+* Validação de documento
+* Armazenamento seguro de credenciais
+
+### Autenticação
+
+* Login com validação de senha
+* Geração de Token JWT
+
+### Operações Financeiras
+
+* Depósito
+* Saque
+* Transferência entre contas
+* Consulta de saldo
+* Consulta de extrato
+
+### Garantia de Qualidade
+
+* Testes unitários com xUnit
+* Mocks utilizando Moq
+* Cobertura das principais regras de negócio
+
+---
+
+# 📡 Principais Endpoints
+
+### Login
+
+```http
+POST /api/auth/login
+```
+
+Request:
+
+```json
+{
+  "identificador": "52277",
+  "senha": "MinhaSenha123"
+}
+```
+
+Response:
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+---
+
+### Consultar Saldo
+
+```http
+GET /api/accounts/{id}/saldo
+```
+
+Header:
+
+```text
+Authorization: Bearer {token}
+```
+
+---
+
+### Consultar Extrato
+
+```http
+GET /api/accounts/{id}/extrato
+```
+
+Header:
+
+```text
+Authorization: Bearer {token}
+```
+
+---
+
+# 📝 Decisões Arquiteturais
+
+### Idempotência
+
+As transferências recebem uma chave de idempotência para evitar duplicidade em cenários de reenvio da mesma requisição.
+
+### Consistência Transacional
+
+As operações financeiras são executadas dentro de transações atômicas utilizando Dapper, garantindo rollback automático em caso de falha.
+
+### Aplicação Stateless
+
+A API não mantém estado em memória, permitindo escalabilidade horizontal e futura execução em ambientes Kubernetes sem alterações no código.
+
+---
+
+# 🚀 Executando o Projeto
+
+## Pré-requisitos
+
+* Docker
+* Docker Compose
+
+## Clonar o repositório
+
+```bash
+git clone https://github.com/GersonAparecidoLima/ProjetoBankMore.git
+```
+
+## Executar containers
 
 ```bash
 docker-compose up --build
+```
 
-3.O Docker irá orquestrar a inicialização do banco de dados SQL Server (rodando os scripts de criação de tabelas) e a inicialização da API .NET.
+O Docker iniciará:
 
-4.Assim que os containers estiverem de pé, acesse o painel do Swagger para realizar os testes:
+* SQL Server
+* API BankMore
 
-🌐 Swagger UI: http://localhost:5044/swagger
+---
+
+# 📚 Documentação
+
+Após a inicialização dos containers:
+
+🌐 Swagger UI
+
+```text
+http://localhost:5044/swagger
+```
+
+---
+
+# ✅ Status do Projeto
+
+Projeto funcional com:
+
+* JWT Authentication
+* CQRS + MediatR
+* Dapper
+* SQL Server
+* Docker
+* Testes Unitários
+* Arquitetura em Camadas
+* Aplicação dos princípios SOLID
